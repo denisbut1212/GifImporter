@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections;
 
 /// <summary>
@@ -9,6 +9,7 @@ public static class UniGifExtension
     /// <summary>
     /// Convert BitArray to int (Specifies the start index and bit length)
     /// </summary>
+    /// <param name="array"></param>
     /// <param name="startIndex">Start index</param>
     /// <param name="bitLength">Bit length</param>
     /// <returns>Converted int</returns>
@@ -16,18 +17,8 @@ public static class UniGifExtension
     {
         var newArray = new BitArray(bitLength);
 
-        for (int i = 0; i < bitLength; i++)
-        {
-            if (array.Length <= startIndex + i)
-            {
-                newArray[i] = false;
-            }
-            else
-            {
-                bool bit = array.Get(startIndex + i);
-                newArray[i] = bit;
-            }
-        }
+        for (int i = 0; i < bitLength; i++) 
+            newArray[i] = array.Length > startIndex + i && array.Get(startIndex + i);
 
         return newArray.ToNumeral();
     }
@@ -39,15 +30,10 @@ public static class UniGifExtension
     public static int ToNumeral(this BitArray array)
     {
         if (array == null)
-        {
-            Debug.LogError("array is nothing.");
-            return 0;
-        }
+            throw new ArgumentNullException();
+
         if (array.Length > 32)
-        {
-            Debug.LogError("must be at most 32 bits long.");
-            return 0;
-        }
+            throw new ArgumentOutOfRangeException(nameof(array));
 
         var result = new int[1];
         array.CopyTo(result, 0);

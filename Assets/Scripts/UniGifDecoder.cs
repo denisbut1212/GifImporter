@@ -1,11 +1,4 @@
-﻿/*
-UniGif
-Copyright (c) 2015 WestHillApps (Hironari Nishioka)
-This software is released under the MIT License.
-http://opensource.org/licenses/mit-license.php
-*/
-
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -21,12 +14,11 @@ public static partial class UniGif
     /// <param name="filterMode">Textures filter mode</param>
     /// <param name="wrapMode">Textures wrap mode</param>
     /// <returns>IEnumerator</returns>
-    private static IEnumerator DecodeTextureCoroutine(GifData gifData, Action<List<GifTexture>> callback, FilterMode filterMode, TextureWrapMode wrapMode)
+    private static IEnumerator DecodeTextureCoroutine(GifData gifData, Action<List<GifTexture>> callback,
+        FilterMode filterMode, TextureWrapMode wrapMode)
     {
         if (gifData.m_imageBlockList == null || gifData.m_imageBlockList.Count < 1)
-        {
             yield break;
-        }
 
         List<GifTexture> gifTexList = new List<GifTexture>(gifData.m_imageBlockList.Count);
         List<ushort> disposalMethodList = new List<ushort>(gifData.m_imageBlockList.Count);
@@ -44,12 +36,14 @@ public static partial class UniGif
             disposalMethodList.Add(GetDisposalMethod(graphicCtrlEx));
 
             Color32 bgColor;
-            List<byte[]> colorTable = GetColorTableAndSetBgColor(gifData, gifData.m_imageBlockList[i], transparentIndex, out bgColor);
+            List<byte[]> colorTable =
+                GetColorTableAndSetBgColor(gifData, gifData.m_imageBlockList[i], transparentIndex, out bgColor);
 
             yield return 0;
 
             bool filledTexture;
-            Texture2D tex = CreateTexture2D(gifData, gifTexList, imgIndex, disposalMethodList, bgColor, filterMode, wrapMode, out filledTexture);
+            Texture2D tex = CreateTexture2D(gifData, gifTexList, imgIndex, disposalMethodList, bgColor, filterMode,
+                wrapMode, out filledTexture);
 
             yield return 0;
 
@@ -57,9 +51,9 @@ public static partial class UniGif
             int dataIndex = 0;
             // Reverse set pixels. because GIF data starts from the top left.
             for (int y = tex.height - 1; y >= 0; y--)
-            {
-                SetTexturePixelRow(tex, y, gifData.m_imageBlockList[i], decodedData, ref dataIndex, colorTable, bgColor, transparentIndex, filledTexture);
-            }
+                SetTexturePixelRow(tex, y, gifData.m_imageBlockList[i], decodedData, ref dataIndex, colorTable, bgColor,
+                    transparentIndex, filledTexture);
+
             tex.Apply();
 
             yield return 0;
@@ -72,12 +66,7 @@ public static partial class UniGif
             imgIndex++;
         }
 
-        if (callback != null)
-        {
-            callback(gifTexList);
-        }
-
-        yield break;
+        callback?.Invoke(gifTexList);
     }
 
     #region Call from DecodeTexture methods
@@ -90,42 +79,43 @@ public static partial class UniGif
         // Combine LZW compressed data
         List<byte> lzwData = new List<byte>();
         for (int i = 0; i < imgBlock.m_imageDataList.Count; i++)
-        {
-            for (int k = 0; k < imgBlock.m_imageDataList[i].m_imageData.Length; k++)
-            {
-                lzwData.Add(imgBlock.m_imageDataList[i].m_imageData[k]);
-            }
-        }
+        for (int k = 0; k < imgBlock.m_imageDataList[i].m_imageData.Length; k++)
+            lzwData.Add(imgBlock.m_imageDataList[i].m_imageData[k]);
 
         // LZW decode
         int needDataSize = imgBlock.m_imageHeight * imgBlock.m_imageWidth;
-        byte[] decodedData = DecodeGifLZW(lzwData, imgBlock.m_lzwMinimumCodeSize, needDataSize);
+        byte[] decodedData = DecodeGifLzw(lzwData, imgBlock.m_lzwMinimumCodeSize, needDataSize);
 
         // Sort interlace GIF
         if (imgBlock.m_interlaceFlag)
-        {
             decodedData = SortInterlaceGifData(decodedData, imgBlock.m_imageWidth);
-        }
+
         return decodedData;
     }
 
     /// <summary>
     /// Get color table and set background color (local or global)
     /// </summary>
-    private static List<byte[]> GetColorTableAndSetBgColor(GifData gifData, ImageBlock imgBlock, int transparentIndex, out Color32 bgColor)
+    private static List<byte[]> GetColorTableAndSetBgColor(GifData gifData, ImageBlock imgBlock, int transparentIndex,
+        out Color32 bgColor)
     {
-        List<byte[]> colorTable = imgBlock.m_localColorTableFlag ? imgBlock.m_localColorTable : gifData.m_globalColorTableFlag ? gifData.m_globalColorTable : null;
+        List<byte[]> colorTable;
+        if (imgBlock.m_localColorTableFlag)
+            colorTable = imgBlock.m_localColorTable;
+        else if (gifData.m_globalColorTableFlag)
+            colorTable = gifData.m_globalColorTable;
+        else
+            colorTable = null;
 
         if (colorTable != null)
         {
             // Set background color from color table
             byte[] bgRgb = colorTable[gifData.m_bgColorIndex];
-            bgColor = new Color32(bgRgb[0], bgRgb[1], bgRgb[2], (byte)(transparentIndex == gifData.m_bgColorIndex ? 0 : 255));
+            bgColor = new Color32(bgRgb[0], bgRgb[1], bgRgb[2],
+                (byte) (transparentIndex == gifData.m_bgColorIndex ? 0 : 255));
         }
         else
-        {
             bgColor = Color.black;
-        }
 
         return colorTable;
     }
@@ -136,9 +126,8 @@ public static partial class UniGif
     private static GraphicControlExtension? GetGraphicCtrlExt(GifData gifData, int imgBlockIndex)
     {
         if (gifData.m_graphicCtrlExList != null && gifData.m_graphicCtrlExList.Count > imgBlockIndex)
-        {
             return gifData.m_graphicCtrlExList[imgBlockIndex];
-        }
+
         return null;
     }
 
@@ -149,9 +138,8 @@ public static partial class UniGif
     {
         int transparentIndex = -1;
         if (graphicCtrlEx != null && graphicCtrlEx.Value.m_transparentColorFlag)
-        {
             transparentIndex = graphicCtrlEx.Value.m_transparentColorIndex;
-        }
+
         return transparentIndex;
     }
 
@@ -163,9 +151,8 @@ public static partial class UniGif
         // Get delay sec from GraphicControlExtension
         float delaySec = graphicCtrlEx != null ? graphicCtrlEx.Value.m_delayTime / 100f : (1f / 60f);
         if (delaySec <= 0f)
-        {
             delaySec = 0.1f;
-        }
+
         return delaySec;
     }
 
@@ -173,34 +160,29 @@ public static partial class UniGif
     /// Get disposal method from GraphicControlExtension
     /// </summary>
     private static ushort GetDisposalMethod(GraphicControlExtension? graphicCtrlEx)
-    {
-        return graphicCtrlEx != null ? graphicCtrlEx.Value.m_disposalMethod : (ushort)2;
-    }
+        => graphicCtrlEx?.m_disposalMethod ?? (ushort) 2;
 
     /// <summary>
     /// Create Texture2D object and initial settings
     /// </summary>
-    private static Texture2D CreateTexture2D(GifData gifData, List<GifTexture> gifTexList, int imgIndex, List<ushort> disposalMethodList, Color32 bgColor, FilterMode filterMode, TextureWrapMode wrapMode, out bool filledTexture)
+    private static Texture2D CreateTexture2D(GifData gifData, List<GifTexture> gifTexList, int imgIndex,
+        List<ushort> disposalMethodList, Color32 bgColor, FilterMode filterMode, TextureWrapMode wrapMode,
+        out bool filledTexture)
     {
         filledTexture = false;
 
         // Create texture
-        Texture2D tex = new Texture2D(gifData.m_logicalScreenWidth, gifData.m_logicalScreenHeight, TextureFormat.ARGB32, false);
+        Texture2D tex = new Texture2D(gifData.m_logicalScreenWidth, gifData.m_logicalScreenHeight, TextureFormat.ARGB32,
+            false);
         tex.filterMode = filterMode;
         tex.wrapMode = wrapMode;
 
         // Check dispose
-        ushort disposalMethod = imgIndex > 0 ? disposalMethodList[imgIndex - 1] : (ushort)2;
+        ushort disposalMethod = imgIndex > 0 ? disposalMethodList[imgIndex - 1] : (ushort) 2;
         int useBeforeIndex = -1;
-        if (disposalMethod == 0)
-        {
-            // 0 (No disposal specified)
-        }
-        else if (disposalMethod == 1)
-        {
+        if (disposalMethod == 1)
             // 1 (Do not dispose)
             useBeforeIndex = imgIndex - 1;
-        }
         else if (disposalMethod == 2)
         {
             // 2 (Restore to background color)
@@ -210,6 +192,7 @@ public static partial class UniGif
             {
                 pix[i] = bgColor;
             }
+
             tex.SetPixels32(pix);
             tex.Apply();
         }
@@ -240,7 +223,8 @@ public static partial class UniGif
     /// <summary>
     /// Set texture pixel row
     /// </summary>
-    private static void SetTexturePixelRow(Texture2D tex, int y, ImageBlock imgBlock, byte[] decodedData, ref int dataIndex, List<byte[]> colorTable, Color32 bgColor, int transparentIndex, bool filledTexture)
+    private static void SetTexturePixelRow(Texture2D tex, int y, ImageBlock imgBlock, byte[] decodedData,
+        ref int dataIndex, List<byte[]> colorTable, Color32 bgColor, int transparentIndex, bool filledTexture)
     {
         // Row no (0~)
         int row = tex.height - 1 - y;
@@ -257,10 +241,9 @@ public static partial class UniGif
                 line >= imgBlock.m_imageLeftPosition + imgBlock.m_imageWidth)
             {
                 // Get pixel color from bg color
-                if (filledTexture == false)
-                {
+                if (filledTexture == false) 
                     tex.SetPixel(x, y, bgColor);
-                }
+
                 continue;
             }
 
@@ -271,10 +254,10 @@ public static partial class UniGif
                 {
                     tex.SetPixel(x, y, bgColor);
                     if (dataIndex == decodedData.Length)
-                    {
-                        Debug.LogError("dataIndex exceeded the size of decodedData. dataIndex:" + dataIndex + " decodedData.Length:" + decodedData.Length + " y:" + y + " x:" + x);
-                    }
+                        Debug.LogError("dataIndex exceeded the size of decodedData. dataIndex:" + dataIndex +
+                                       " decodedData.Length:" + decodedData.Length + " y:" + y + " x:" + x);
                 }
+
                 dataIndex++;
                 continue;
             }
@@ -288,21 +271,22 @@ public static partial class UniGif
                     {
                         tex.SetPixel(x, y, bgColor);
                         if (colorTable == null)
-                        {
-                            Debug.LogError("colorIndex exceeded the size of colorTable. colorTable is null. colorIndex:" + colorIndex);
-                        }
+                            Debug.LogError(
+                                "colorIndex exceeded the size of colorTable. colorTable is null. colorIndex:" +
+                                colorIndex);
                         else
-                        {
-                            Debug.LogError("colorIndex exceeded the size of colorTable. colorTable.Count:" + colorTable.Count + " colorIndex:" + colorIndex);
-                        }
+                            Debug.LogError("colorIndex exceeded the size of colorTable. colorTable.Count:" +
+                                           colorTable.Count + " colorIndex:" + colorIndex);
                     }
+
                     dataIndex++;
                     continue;
                 }
+
                 byte[] rgb = colorTable[colorIndex];
 
                 // Set alpha
-                byte alpha = transparentIndex >= 0 && transparentIndex == colorIndex ? (byte)0 : (byte)255;
+                byte alpha = transparentIndex >= 0 && transparentIndex == colorIndex ? (byte) 0 : (byte) 255;
 
                 if (filledTexture == false || alpha != 0)
                 {
@@ -327,15 +311,14 @@ public static partial class UniGif
     /// <param name="lzwMinimumCodeSize">LZW minimum code size</param>
     /// <param name="needDataSize">Need decoded data size</param>
     /// <returns>Decoded data array</returns>
-    private static byte[] DecodeGifLZW(List<byte> compData, int lzwMinimumCodeSize, int needDataSize)
+    private static byte[] DecodeGifLzw(List<byte> compData, int lzwMinimumCodeSize, int needDataSize)
     {
         int clearCode = 0;
         int finishCode = 0;
 
         // Initialize dictionary
         Dictionary<int, string> dic = new Dictionary<int, string>();
-        int lzwCodeSize = 0;
-        InitDictionary(dic, lzwMinimumCodeSize, out lzwCodeSize, out clearCode, out finishCode);
+        InitDictionary(dic, lzwMinimumCodeSize, out var lzwCodeSize, out clearCode, out finishCode);
 
         // Convert to bit array
         byte[] compDataArr = compData.ToArray();
@@ -361,7 +344,7 @@ public static partial class UniGif
 
             int key = bitData.GetNumeral(bitDataIndex, lzwCodeSize);
 
-            string entry = null;
+            string entry;
 
             if (key == clearCode)
             {
@@ -371,13 +354,14 @@ public static partial class UniGif
                 prevEntry = null;
                 continue;
             }
-            else if (key == finishCode)
+            if (key == finishCode)
             {
                 // Exit
-                Debug.LogWarning("early stop code. bitDataIndex:" + bitDataIndex + " lzwCodeSize:" + lzwCodeSize + " key:" + key + " dic.Count:" + dic.Count);
+                Debug.LogWarning("early stop code. bitDataIndex:" + bitDataIndex + " lzwCodeSize:" + lzwCodeSize +
+                                 " key:" + key + " dic.Count:" + dic.Count);
                 break;
             }
-            else if (dic.ContainsKey(key))
+            if (dic.ContainsKey(key))
             {
                 // Output from dictionary
                 entry = dic[key];
@@ -385,20 +369,20 @@ public static partial class UniGif
             else if (key >= dic.Count)
             {
                 if (prevEntry != null)
-                {
                     // Output from estimation
                     entry = prevEntry + prevEntry[0];
-                }
                 else
                 {
-                    Debug.LogWarning("It is strange that come here. bitDataIndex:" + bitDataIndex + " lzwCodeSize:" + lzwCodeSize + " key:" + key + " dic.Count:" + dic.Count);
+                    Debug.LogWarning("It is strange that come here. bitDataIndex:" + bitDataIndex + " lzwCodeSize:" +
+                                     lzwCodeSize + " key:" + key + " dic.Count:" + dic.Count);
                     bitDataIndex += lzwCodeSize;
                     continue;
                 }
             }
             else
             {
-                Debug.LogWarning("It is strange that come here. bitDataIndex:" + bitDataIndex + " lzwCodeSize:" + lzwCodeSize + " key:" + key + " dic.Count:" + dic.Count);
+                Debug.LogWarning("It is strange that come here. bitDataIndex:" + bitDataIndex + " lzwCodeSize:" +
+                                 lzwCodeSize + " key:" + key + " dic.Count:" + dic.Count);
                 bitDataIndex += lzwCodeSize;
                 continue;
             }
@@ -416,63 +400,53 @@ public static partial class UniGif
             }
 
             if (outputAddIndex >= needDataSize)
-            {
                 // Exit
                 break;
-            }
 
             if (prevEntry != null)
-            {
                 // Add to dictionary
                 dic.Add(dic.Count, prevEntry + entry[0]);
-            }
 
             prevEntry = entry;
 
             bitDataIndex += lzwCodeSize;
 
-            if (lzwCodeSize == 3 && dic.Count >= 8)
+            switch (lzwCodeSize)
             {
-                lzwCodeSize = 4;
-            }
-            else if (lzwCodeSize == 4 && dic.Count >= 16)
-            {
-                lzwCodeSize = 5;
-            }
-            else if (lzwCodeSize == 5 && dic.Count >= 32)
-            {
-                lzwCodeSize = 6;
-            }
-            else if (lzwCodeSize == 6 && dic.Count >= 64)
-            {
-                lzwCodeSize = 7;
-            }
-            else if (lzwCodeSize == 7 && dic.Count >= 128)
-            {
-                lzwCodeSize = 8;
-            }
-            else if (lzwCodeSize == 8 && dic.Count >= 256)
-            {
-                lzwCodeSize = 9;
-            }
-            else if (lzwCodeSize == 9 && dic.Count >= 512)
-            {
-                lzwCodeSize = 10;
-            }
-            else if (lzwCodeSize == 10 && dic.Count >= 1024)
-            {
-                lzwCodeSize = 11;
-            }
-            else if (lzwCodeSize == 11 && dic.Count >= 2048)
-            {
-                lzwCodeSize = 12;
-            }
-            else if (lzwCodeSize == 12 && dic.Count >= 4096)
-            {
-                int nextKey = bitData.GetNumeral(bitDataIndex, lzwCodeSize);
-                if (nextKey != clearCode)
+                case 3 when dic.Count >= 8:
+                    lzwCodeSize = 4;
+                    break;
+                case 4 when dic.Count >= 16:
+                    lzwCodeSize = 5;
+                    break;
+                case 5 when dic.Count >= 32:
+                    lzwCodeSize = 6;
+                    break;
+                case 6 when dic.Count >= 64:
+                    lzwCodeSize = 7;
+                    break;
+                case 7 when dic.Count >= 128:
+                    lzwCodeSize = 8;
+                    break;
+                case 8 when dic.Count >= 256:
+                    lzwCodeSize = 9;
+                    break;
+                case 9 when dic.Count >= 512:
+                    lzwCodeSize = 10;
+                    break;
+                case 10 when dic.Count >= 1024:
+                    lzwCodeSize = 11;
+                    break;
+                case 11 when dic.Count >= 2048:
+                    lzwCodeSize = 12;
+                    break;
+                case 12 when dic.Count >= 4096:
                 {
-                    dicInitFlag = true;
+                    int nextKey = bitData.GetNumeral(bitDataIndex, lzwCodeSize);
+                    if (nextKey != clearCode) 
+                        dicInitFlag = true;
+
+                    break;
                 }
             }
         }
@@ -488,9 +462,10 @@ public static partial class UniGif
     /// <param name="lzwCodeSize">out LZW code size</param>
     /// <param name="clearCode">out Clear code</param>
     /// <param name="finishCode">out Finish code</param>
-    private static void InitDictionary(Dictionary<int, string> dic, int lzwMinimumCodeSize, out int lzwCodeSize, out int clearCode, out int finishCode)
+    private static void InitDictionary(Dictionary<int, string> dic, int lzwMinimumCodeSize, out int lzwCodeSize,
+        out int clearCode, out int finishCode)
     {
-        int dicLength = (int)Math.Pow(2, lzwMinimumCodeSize);
+        int dicLength = (int) Math.Pow(2, lzwMinimumCodeSize);
 
         clearCode = dicLength;
         finishCode = clearCode + 1;
@@ -499,7 +474,7 @@ public static partial class UniGif
 
         for (int i = 0; i < dicLength + 2; i++)
         {
-            dic.Add(i, ((char)i).ToString());
+            dic.Add(i, ((char) i).ToString());
         }
 
         lzwCodeSize = lzwMinimumCodeSize + 1;
@@ -524,11 +499,11 @@ public static partial class UniGif
                 newArr[i] = decodedData[dataIndex];
                 dataIndex++;
             }
-            if (i != 0 && i % xNum == 0)
-            {
+
+            if (i != 0 && i % xNum == 0) 
                 rowNo++;
-            }
         }
+
         rowNo = 0;
         // Every 8th. row, starting with row 4.
         for (int i = 0; i < newArr.Length; i++)
@@ -538,11 +513,13 @@ public static partial class UniGif
                 newArr[i] = decodedData[dataIndex];
                 dataIndex++;
             }
+
             if (i != 0 && i % xNum == 0)
             {
                 rowNo++;
             }
         }
+
         rowNo = 0;
         // Every 4th. row, starting with row 2.
         for (int i = 0; i < newArr.Length; i++)
@@ -552,11 +529,13 @@ public static partial class UniGif
                 newArr[i] = decodedData[dataIndex];
                 dataIndex++;
             }
+
             if (i != 0 && i % xNum == 0)
             {
                 rowNo++;
             }
         }
+
         rowNo = 0;
         // Every 2nd. row, starting with row 1.
         for (int i = 0; i < newArr.Length; i++)
@@ -566,10 +545,9 @@ public static partial class UniGif
                 newArr[i] = decodedData[dataIndex];
                 dataIndex++;
             }
-            if (i != 0 && i % xNum == 0)
-            {
+
+            if (i != 0 && i % xNum == 0) 
                 rowNo++;
-            }
         }
 
         return newArr;
