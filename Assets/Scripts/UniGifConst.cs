@@ -79,7 +79,7 @@ public static partial class UniGif
         // Trailer
         public byte m_trailer;
 
-        public string Signature
+        private string Signature
         {
             get
             {
@@ -88,7 +88,7 @@ public static partial class UniGif
             }
         }
 
-        public string Version
+        private string Version
         {
             get
             {

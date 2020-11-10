@@ -2,22 +2,25 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UniGifTest : MonoBehaviour
+namespace Example.Script
 {
-    [SerializeField] private InputField inputField;
-    [SerializeField] private UniGifImage uniGifImage;
-    private bool m_mutex;
-
-    public void OnButtonClicked()
+    public class UniGifTest : MonoBehaviour
     {
-        if (m_mutex || uniGifImage == null || string.IsNullOrEmpty(inputField.text)) return;
-        m_mutex = true;
-        StartCoroutine(ViewGifCoroutine());
-    }
+        [SerializeField] private InputField inputField;
+        [SerializeField] private UniGifImage uniGifImage;
+        private bool m_mutex;
 
-    private IEnumerator ViewGifCoroutine()
-    {
-        yield return StartCoroutine(uniGifImage.SetGifFromUrlCoroutine(inputField.text));
-        m_mutex = false;
+        public void OnButtonClicked()
+        {
+            if (m_mutex || uniGifImage == null || string.IsNullOrEmpty(inputField.text)) return;
+            m_mutex = true;
+            StartCoroutine(ViewGifCoroutine());
+        }
+
+        private IEnumerator ViewGifCoroutine()
+        {
+            yield return StartCoroutine(uniGifImage.SetGifFromUrlCoroutine(inputField.text));
+            m_mutex = false;
+        }
     }
 }
