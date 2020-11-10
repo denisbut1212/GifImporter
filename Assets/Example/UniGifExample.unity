@@ -1913,7 +1913,7 @@ MonoBehaviour:
   filterMode: 0
   wrapMode: 1
   loadOnStart: 1
-  loadOnStartUrl: http://www.reactiongifs.com/wp-content/uploads/2012/12/grumpy-cat.gif
+  loadOnStartUrl: https://i.pinimg.com/originals/f8/9c/b6/f89cb6444fd6287e82d8ec956ecc3a07.gif
   rotateOnLoading: 1
   outputDebugLog: 0
 --- !u!114 &2107900801

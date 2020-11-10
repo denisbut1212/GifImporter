@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace Example.Script.Utility
 {
@@ -39,8 +40,8 @@ namespace Example.Script.Utility
 
             if (this.originalWidth <= 0 || this.originalHeight <= 0) return;
             bool changeX;
-            if (forceUpdate || m_lastSize.x != RectTransform.sizeDelta.x) changeX = true;
-            else if (m_lastSize.y != RectTransform.sizeDelta.y) changeX = false;
+            if (forceUpdate || Math.Abs(m_lastSize.x - RectTransform.sizeDelta.x) > float.Epsilon) changeX = true;
+            else if (Math.Abs(m_lastSize.y - RectTransform.sizeDelta.y) > float.Epsilon) changeX = false;
             else return;
             if (changeX)
             {

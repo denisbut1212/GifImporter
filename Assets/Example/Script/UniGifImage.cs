@@ -172,7 +172,7 @@ namespace Example.Script
                             m_gifTextureList = gifTexList;
                             LoopCount = loopCount;
                             GifState = State.Ready;
-                            imgAspectCtrl.FixAspectRatio(width, height);
+                            imgAspectCtrl.FixAspectRatio();
                             if (rotateOnLoading) transform.localEulerAngles = Vector3.zero;
                             if (autoPlay) Play();
                         }
@@ -190,7 +190,7 @@ namespace Example.Script
         /// </summary>
         private void Clear()
         {
-            if (rawImage != null) rawImage.texture = null;
+            if (rawImage) rawImage.texture = null;
             if (m_gifTextureList != null)
             {
                 for (var i = 0; i < m_gifTextureList.Count; i++)
