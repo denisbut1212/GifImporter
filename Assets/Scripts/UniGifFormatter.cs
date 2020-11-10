@@ -1,13 +1,5 @@
-﻿/*
-UniGif
-Copyright (c) 2015 WestHillApps (Hironari Nishioka)
-This software is released under the MIT License.
-http://opensource.org/licenses/mit-license.php
-*/
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 public static partial class UniGif
 {
@@ -20,36 +12,10 @@ public static partial class UniGif
     /// <returns>Result</returns>
     private static bool SetGifData(byte[] gifBytes, ref GifData gifData, bool debugLog)
     {
-        if (debugLog)
-        {
-            Debug.Log("SetGifData Start.");
-        }
-
-        if (gifBytes == null || gifBytes.Length <= 0)
-        {
-            Debug.LogError("bytes is nothing.");
-            return false;
-        }
-
+        if (gifBytes == null || gifBytes.Length <= 0) throw new ArgumentException(nameof(gifBytes));
         int byteIndex = 0;
-
-        if (SetGifHeader(gifBytes, ref byteIndex, ref gifData) == false)
-        {
-            Debug.LogError("GIF header set error.");
-            return false;
-        }
-
-        if (SetGifBlock(gifBytes, ref byteIndex, ref gifData) == false)
-        {
-            Debug.LogError("GIF block set error.");
-            return false;
-        }
-
-        if (debugLog)
-        {
-            gifData.Dump();
-            Debug.Log("SetGifData Finish.");
-        }
+        if (SetGifHeader(gifBytes, ref byteIndex, ref gifData) == false) throw new Exception("GIF header set error.");
+        if (SetGifBlock(gifBytes, ref byteIndex, ref gifData) == false) throw new Exception("GIF block set error.");
         return true;
     }
 
@@ -58,10 +24,7 @@ public static partial class UniGif
         // Signature(3 Bytes)
         // 0x47 0x49 0x46 (GIF)
         if (gifBytes[0] != 'G' || gifBytes[1] != 'I' || gifBytes[2] != 'F')
-        {
-            Debug.LogError("This is not GIF image.");
-            return false;
-        }
+            throw new Exception("This is not GIF image.");
         gifData.m_sig0 = gifBytes[0];
         gifData.m_sig1 = gifBytes[1];
         gifData.m_sig2 = gifBytes[2];
@@ -70,10 +33,7 @@ public static partial class UniGif
         // 0x38 0x37 0x61 (87a) or 0x38 0x39 0x61 (89a)
         if ((gifBytes[3] != '8' || gifBytes[4] != '7' || gifBytes[5] != 'a') &&
             (gifBytes[3] != '8' || gifBytes[4] != '9' || gifBytes[5] != 'a'))
-        {
-            Debug.LogError("GIF version error.\nSupported only GIF87a or GIF89a.");
-            return false;
-        }
+            throw new Exception("GIF version error.\nSupported only GIF87a or GIF89a.");
         gifData.m_ver0 = gifBytes[3];
         gifData.m_ver1 = gifBytes[4];
         gifData.m_ver2 = gifBytes[5];
@@ -123,7 +83,7 @@ public static partial class UniGif
 
             // Size of Global Color Table(3 Bits)
             int val = (gifBytes[10] & 7) + 1;
-            gifData.m_sizeOfGlobalColorTable = (int)Math.Pow(2, val);
+            gifData.m_sizeOfGlobalColorTable = (int) Math.Pow(2, val);
         }
 
         // Background Color Index(1 Byte)
@@ -131,17 +91,14 @@ public static partial class UniGif
 
         // Pixel Aspect Ratio(1 Byte)
         gifData.m_pixelAspectRatio = gifBytes[12];
-
         byteIndex = 13;
         if (gifData.m_globalColorTableFlag)
         {
             // Global Color Table(0～255×3 Bytes)
             gifData.m_globalColorTable = new List<byte[]>();
             for (int i = byteIndex; i < byteIndex + (gifData.m_sizeOfGlobalColorTable * 3); i += 3)
-            {
-                gifData.m_globalColorTable.Add(new byte[] { gifBytes[i], gifBytes[i + 1], gifBytes[i + 2] });
-            }
-            byteIndex = byteIndex + (gifData.m_sizeOfGlobalColorTable * 3);
+                gifData.m_globalColorTable.Add(new byte[] {gifBytes[i], gifBytes[i + 1], gifBytes[i + 2]});
+            byteIndex += gifData.m_sizeOfGlobalColorTable * 3;
         }
 
         return true;
@@ -155,13 +112,9 @@ public static partial class UniGif
             while (true)
             {
                 int nowIndex = byteIndex;
-
                 if (gifBytes[nowIndex] == 0x2c)
-                {
                     // Image Block(0x2c)
                     SetImageBlock(gifBytes, ref byteIndex, ref gifData);
-
-                }
                 else if (gifBytes[nowIndex] == 0x21)
                 {
                     // Extension
@@ -183,8 +136,6 @@ public static partial class UniGif
                             // Application Extension(0x21 0xff)
                             SetApplicationExtension(gifBytes, ref byteIndex, ref gifData);
                             break;
-                        default:
-                            break;
                     }
                 }
                 else if (gifBytes[nowIndex] == 0x3b)
@@ -195,19 +146,13 @@ public static partial class UniGif
                     break;
                 }
 
-                if (lastIndex == nowIndex)
-                {
-                    Debug.LogError("Infinite loop error.");
-                    return false;
-                }
-
+                if (lastIndex == nowIndex) throw new Exception("infinite loop");
                 lastIndex = nowIndex;
             }
         }
         catch (Exception ex)
         {
-            Debug.LogError(ex.Message);
-            return false;
+            throw new Exception(ex.Message);
         }
 
         return true;
@@ -254,20 +199,16 @@ public static partial class UniGif
 
             // Size of Local Color Table(3 Bits)
             int val = (gifBytes[byteIndex] & 7) + 1;
-            ib.m_sizeOfLocalColorTable = (int)Math.Pow(2, val);
-
+            ib.m_sizeOfLocalColorTable = (int) Math.Pow(2, val);
             byteIndex++;
         }
-
         if (ib.m_localColorTableFlag)
         {
             // Local Color Table(0～255×3 Bytes)
             ib.m_localColorTable = new List<byte[]>();
             for (int i = byteIndex; i < byteIndex + (ib.m_sizeOfLocalColorTable * 3); i += 3)
-            {
-                ib.m_localColorTable.Add(new byte[] { gifBytes[i], gifBytes[i + 1], gifBytes[i + 2] });
-            }
-            byteIndex = byteIndex + (ib.m_sizeOfLocalColorTable * 3);
+                ib.m_localColorTable.Add(new byte[] {gifBytes[i], gifBytes[i + 1], gifBytes[i + 2]});
+            byteIndex += ib.m_sizeOfLocalColorTable * 3;
         }
 
         // LZW Minimum Code Size(1 Byte)
@@ -280,13 +221,9 @@ public static partial class UniGif
             // Block Size(1 Byte)
             byte blockSize = gifBytes[byteIndex];
             byteIndex++;
-
             if (blockSize == 0x00)
-            {
                 // Block Terminator(1 Byte)
                 break;
-            }
-
             var imageDataBlock = new ImageBlock.ImageDataBlock();
             imageDataBlock.m_blockSize = blockSize;
 
@@ -298,17 +235,11 @@ public static partial class UniGif
                 byteIndex++;
             }
 
-            if (ib.m_imageDataList == null)
-            {
-                ib.m_imageDataList = new List<ImageBlock.ImageDataBlock>();
-            }
+            if (ib.m_imageDataList == null) ib.m_imageDataList = new List<ImageBlock.ImageDataBlock>();
             ib.m_imageDataList.Add(imageDataBlock);
         }
 
-        if (gifData.m_imageBlockList == null)
-        {
-            gifData.m_imageBlockList = new List<ImageBlock>();
-        }
+        if (gifData.m_imageBlockList == null) gifData.m_imageBlockList = new List<ImageBlock>();
         gifData.m_imageBlockList.Add(ib);
     }
 
@@ -342,14 +273,15 @@ public static partial class UniGif
             // 2 (Restore to background color)
             // 3 (Restore to previous)
             switch (gifBytes[byteIndex] & 28)
-            { // 0b00011100
-                case 4:     // 0b00000100
+            {
+                // 0b00011100
+                case 4: // 0b00000100
                     gcEx.m_disposalMethod = 1;
                     break;
-                case 8:     // 0b00001000
+                case 8: // 0b00001000
                     gcEx.m_disposalMethod = 2;
                     break;
-                case 12:    // 0b00001100
+                case 12: // 0b00001100
                     gcEx.m_disposalMethod = 3;
                     break;
                 default:
@@ -362,7 +294,6 @@ public static partial class UniGif
 
             // Transparent Color Flag(1 Bit)
             gcEx.m_transparentColorFlag = (gifBytes[byteIndex] & 1) == 1; // 0b00000001
-
             byteIndex++;
         }
 
@@ -377,11 +308,11 @@ public static partial class UniGif
         // Block Terminator(1 Byte)
         gcEx.m_blockTerminator = gifBytes[byteIndex];
         byteIndex++;
-
         if (gifData.m_graphicCtrlExList == null)
         {
             gifData.m_graphicCtrlExList = new List<GraphicControlExtension>();
         }
+
         gifData.m_graphicCtrlExList.Add(gcEx);
     }
 
@@ -405,13 +336,9 @@ public static partial class UniGif
             // Block Size(1 Byte)
             byte blockSize = gifBytes[byteIndex];
             byteIndex++;
-
             if (blockSize == 0x00)
-            {
                 // Block Terminator(1 Byte)
                 break;
-            }
-
             var commentDataBlock = new CommentExtension.CommentDataBlock();
             commentDataBlock.m_blockSize = blockSize;
 
@@ -424,26 +351,20 @@ public static partial class UniGif
             }
 
             if (commentEx.m_commentDataList == null)
-            {
                 commentEx.m_commentDataList = new List<CommentExtension.CommentDataBlock>();
-            }
             commentEx.m_commentDataList.Add(commentDataBlock);
         }
 
-        if (gifData.m_commentExList == null)
-        {
-            gifData.m_commentExList = new List<CommentExtension>();
-        }
+        if (gifData.m_commentExList == null) gifData.m_commentExList = new List<CommentExtension>();
         gifData.m_commentExList.Add(commentEx);
     }
 
     private static void SetPlainTextExtension(byte[] gifBytes, ref int byteIndex, ref GifData gifData)
     {
-        PlainTextExtension plainTxtEx = new PlainTextExtension();
+        PlainTextExtension plainTxtEx = new PlainTextExtension {m_extensionIntroducer = gifBytes[byteIndex]};
 
         // Extension Introducer(1 Byte)
         // 0x21
-        plainTxtEx.m_extensionIntroducer = gifBytes[byteIndex];
         byteIndex++;
 
         // Plain Text Label(1 Byte)
@@ -494,13 +415,9 @@ public static partial class UniGif
             // Block Size(1 Byte)
             byte blockSize = gifBytes[byteIndex];
             byteIndex++;
-
             if (blockSize == 0x00)
-            {
                 // Block Terminator(1 Byte)
                 break;
-            }
-
             var plainTextDataBlock = new PlainTextExtension.PlainTextDataBlock();
             plainTextDataBlock.m_blockSize = blockSize;
 
@@ -513,16 +430,11 @@ public static partial class UniGif
             }
 
             if (plainTxtEx.m_plainTextDataList == null)
-            {
                 plainTxtEx.m_plainTextDataList = new List<PlainTextExtension.PlainTextDataBlock>();
-            }
             plainTxtEx.m_plainTextDataList.Add(plainTextDataBlock);
         }
 
-        if (gifData.m_plainTextExList == null)
-        {
-            gifData.m_plainTextExList = new List<PlainTextExtension>();
-        }
+        if (gifData.m_plainTextExList == null) gifData.m_plainTextExList = new List<PlainTextExtension>();
         gifData.m_plainTextExList.Add(plainTxtEx);
     }
 
@@ -575,15 +487,10 @@ public static partial class UniGif
             // Block Size (1 Byte)
             byte blockSize = gifBytes[byteIndex];
             byteIndex++;
-
             if (blockSize == 0x00)
-            {
                 // Block Terminator(1 Byte)
                 break;
-            }
-
-            var appDataBlock = new ApplicationExtension.ApplicationDataBlock();
-            appDataBlock.m_blockSize = blockSize;
+            var appDataBlock = new ApplicationExtension.ApplicationDataBlock {m_blockSize = blockSize};
 
             // Application Data(n Byte)
             appDataBlock.m_applicationData = new byte[appDataBlock.m_blockSize];
@@ -594,9 +501,7 @@ public static partial class UniGif
             }
 
             if (gifData.m_appEx.m_appDataList == null)
-            {
                 gifData.m_appEx.m_appDataList = new List<ApplicationExtension.ApplicationDataBlock>();
-            }
             gifData.m_appEx.m_appDataList.Add(appDataBlock);
         }
     }

@@ -106,7 +106,7 @@ public static partial class UniGif
             if (m_graphicCtrlExList != null && m_graphicCtrlExList.Count > 0)
             {
                 var sb = new StringBuilder("Animation Delay Time (1/100sec)");
-                for (int i = 0; i < m_graphicCtrlExList.Count; i++)
+                for (var i = 0; i < m_graphicCtrlExList.Count; i++)
                 {
                     sb.Append(", ");
                     sb.Append(m_graphicCtrlExList[i].m_delayTime);
@@ -310,11 +310,8 @@ public static partial class UniGif
         {
             get
             {
-                if (m_appDataList == null || m_appDataList.Count < 1 ||
-                    m_appDataList[0].m_applicationData.Length < 3 ||
-                    m_appDataList[0].m_applicationData[0] != 0x01)
-                    return 0;
-
+                if (m_appDataList == null || m_appDataList.Count < 1 || m_appDataList[0].m_applicationData.Length < 3 ||
+                    m_appDataList[0].m_applicationData[0] != 0x01) return 0;
                 return BitConverter.ToUInt16(m_appDataList[0].m_applicationData, 1);
             }
         }

@@ -1,32 +1,17 @@
-﻿/*
-UniGif
-Copyright (c) 2015 WestHillApps (Hironari Nishioka)
-This software is released under the MIT License.
-http://opensource.org/licenses/mit-license.php
-*/
-
-using UnityEngine;
+﻿using UnityEngine;
 
 [ExecuteInEditMode]
 public class UniGifImageAspectController : MonoBehaviour
 {
-    public int m_originalWidth;
-    public int m_originalHeight;
-
-    public bool m_fixOnUpdate;
-
+    public int originalWidth;
+    public int originalHeight;
+    public bool fixOnUpdate;
     private Vector2 m_lastSize = Vector2.zero;
     private Vector2 m_newSize = Vector2.zero;
-
     private RectTransform m_rectTransform;
 
-    public RectTransform rectTransform
-    {
-        get
-        {
-            return m_rectTransform != null ? m_rectTransform : (m_rectTransform = GetComponent<RectTransform>());
-        }
-    }
+    private RectTransform RectTransform =>
+        m_rectTransform != null ? m_rectTransform : m_rectTransform = GetComponent<RectTransform>();
 
     private void Update()
     {
@@ -37,53 +22,36 @@ public class UniGifImageAspectController : MonoBehaviour
             return;
         }
 #endif
-
-        if (m_fixOnUpdate)
-        {
-            FixAspectRatio();
-        }
+        if (fixOnUpdate) FixAspectRatio();
     }
 
     public void FixAspectRatio(int originalWidth = -1, int originalHeight = -1)
     {
-        bool forceUpdate = false;
+        var forceUpdate = false;
         if (originalWidth > 0 && originalHeight > 0)
         {
-            m_originalWidth = originalWidth;
-            m_originalHeight = originalHeight;
+            this.originalWidth = originalWidth;
+            this.originalHeight = originalHeight;
             forceUpdate = true;
         }
-        if (m_originalWidth <= 0 || m_originalHeight <= 0)
-        {
-            return;
-        }
 
+        if (this.originalWidth <= 0 || this.originalHeight <= 0) return;
         bool changeX;
-        if (forceUpdate || m_lastSize.x != rectTransform.sizeDelta.x)
-        {
-            changeX = true;
-        }
-        else if (m_lastSize.y != rectTransform.sizeDelta.y)
-        {
-            changeX = false;
-        }
-        else
-        {
-            return;
-        }
-
+        if (forceUpdate || m_lastSize.x != RectTransform.sizeDelta.x) changeX = true;
+        else if (m_lastSize.y != RectTransform.sizeDelta.y) changeX = false;
+        else return;
         if (changeX)
         {
-            float ratio = rectTransform.sizeDelta.x / m_originalWidth;
-            m_newSize.Set(rectTransform.sizeDelta.x, m_originalHeight * ratio);
+            var ratio = RectTransform.sizeDelta.x / this.originalWidth;
+            m_newSize.Set(RectTransform.sizeDelta.x, this.originalHeight * ratio);
         }
         else
         {
-            float ratio = rectTransform.sizeDelta.y / m_originalHeight;
-            m_newSize.Set(m_originalWidth * ratio, rectTransform.sizeDelta.y);
+            var ratio = RectTransform.sizeDelta.y / this.originalHeight;
+            m_newSize.Set(this.originalWidth * ratio, RectTransform.sizeDelta.y);
         }
-        rectTransform.sizeDelta = m_newSize;
 
-        m_lastSize = rectTransform.sizeDelta;
+        RectTransform.sizeDelta = m_newSize;
+        m_lastSize = RectTransform.sizeDelta;
     }
 }

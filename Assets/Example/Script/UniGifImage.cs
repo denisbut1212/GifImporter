@@ -1,10 +1,4 @@
-﻿/*
-UniGif
-Copyright (c) 2015 WestHillApps (Hironari Nishioka)
-This software is released under the MIT License.
-http://opensource.org/licenses/mit-license.php
-*/
-
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -25,89 +19,69 @@ public class UniGifImage : MonoBehaviour
         Loading,
         Ready,
         Playing,
-        Pause,
+        Pause
     }
 
     // Target row image
-    [SerializeField]
-    private RawImage m_rawImage;
+    [SerializeField] private RawImage rawImage;
+
     // Image Aspect Controller
-    [SerializeField]
-    private UniGifImageAspectController m_imgAspectCtrl;
+    [SerializeField] private UniGifImageAspectController imgAspectCtrl;
+
     // Textures filter mode
-    [SerializeField]
-    private FilterMode m_filterMode = FilterMode.Point;
+    [SerializeField] private FilterMode filterMode = FilterMode.Point;
+
     // Textures wrap mode
-    [SerializeField]
-    private TextureWrapMode m_wrapMode = TextureWrapMode.Clamp;
+    [SerializeField] private TextureWrapMode wrapMode = TextureWrapMode.Clamp;
+
     // Load from url on start
-    [SerializeField]
-    private bool m_loadOnStart;
+    [SerializeField] private bool loadOnStart;
+
     // GIF image url (WEB or StreamingAssets path)
-    [SerializeField]
-    private string m_loadOnStartUrl;
+    [SerializeField] private string loadOnStartUrl;
+
     // Rotating on loading
-    [SerializeField]
-    private bool m_rotateOnLoading;
+    [SerializeField] private bool rotateOnLoading;
+
     // Debug log flag
-    [SerializeField]
-    private bool m_outputDebugLog;
+    [SerializeField] private bool outputDebugLog;
 
     // Decoded GIF texture list
     private List<UniGif.GifTexture> m_gifTextureList;
+
     // Delay time
     private float m_delayTime;
+
     // Texture index
     private int m_gifTextureIndex;
+
     // loop counter
     private int m_nowLoopCount;
 
     /// <summary>
     /// Now state
     /// </summary>
-    public State nowState
-    {
-        get;
-        private set;
-    }
+    public State NowState { get; private set; }
 
     /// <summary>
     /// Animation loop count (0 is infinite)
     /// </summary>
-    public int loopCount
-    {
-        get;
-        private set;
-    }
+    public int LoopCount { get; private set; }
 
     /// <summary>
     /// Texture width (px)
     /// </summary>
-    public int width
-    {
-        get;
-        private set;
-    }
+    public int Width { get; private set; }
 
     /// <summary>
     /// Texture height (px)
     /// </summary>
-    public int height
-    {
-        get;
-        private set;
-    }
+    public int Height { get; private set; }
 
     private void Start()
     {
-        if (m_rawImage == null)
-        {
-            m_rawImage = GetComponent<RawImage>();
-        }
-        if (m_loadOnStart)
-        {
-            SetGifFromUrl(m_loadOnStartUrl);
-        }
+        if (rawImage == null) rawImage = GetComponent<RawImage>();
+        if (loadOnStart) SetGifFromUrl(loadOnStartUrl);
     }
 
     private void OnDestroy()
@@ -117,55 +91,44 @@ public class UniGifImage : MonoBehaviour
 
     private void Update()
     {
-        switch (nowState)
+        switch (NowState)
         {
-            case State.None:
-                break;
-
+            case State.None: break;
             case State.Loading:
-                if (m_rotateOnLoading)
-                {
-                    transform.Rotate(0f, 0f, 30f * Time.deltaTime, Space.Self);
-                }
+                if (rotateOnLoading) transform.Rotate(0f, 0f, 30f * Time.deltaTime, Space.Self);
                 break;
-
-            case State.Ready:
-                break;
-
+            case State.Ready: break;
+            case State.Playing when rawImage == null || m_gifTextureList == null || m_gifTextureList.Count <= 0:
+            {
+                return;
+            }
+            case State.Playing when m_delayTime > Time.time:
+            {
+                return;
+            }
             case State.Playing:
-                if (m_rawImage == null || m_gifTextureList == null || m_gifTextureList.Count <= 0)
-                {
-                    return;
-                }
-                if (m_delayTime > Time.time)
-                {
-                    return;
-                }
+
                 // Change texture
                 m_gifTextureIndex++;
                 if (m_gifTextureIndex >= m_gifTextureList.Count)
                 {
                     m_gifTextureIndex = 0;
-
-                    if (loopCount > 0)
+                    if (LoopCount > 0)
                     {
                         m_nowLoopCount++;
-                        if (m_nowLoopCount >= loopCount)
+                        if (m_nowLoopCount >= LoopCount)
                         {
                             Stop();
                             return;
                         }
                     }
                 }
-                m_rawImage.texture = m_gifTextureList[m_gifTextureIndex].m_texture2d;
+
+                rawImage.texture = m_gifTextureList[m_gifTextureIndex].m_texture2d;
                 m_delayTime = Time.time + m_gifTextureList[m_gifTextureIndex].m_delaySec;
                 break;
-
-            case State.Pause:
-                break;
-
-            default:
-                break;
+            case State.Pause: break;
+            default: throw new ArgumentOutOfRangeException();
         }
     }
 
@@ -193,87 +156,62 @@ public class UniGifImage : MonoBehaviour
             yield break;
         }
 
-        if (nowState == State.Loading)
+        if (NowState == State.Loading)
         {
             Debug.LogWarning("Already loading.");
             yield break;
         }
-        nowState = State.Loading;
 
-        string path;
-        if (url.StartsWith("http"))
-        {
-            // from WEB
-            path = url;
-        }
-        else
-        {
-            // from StreamingAssets
-            path = Path.Combine("file:///" + Application.streamingAssetsPath, url);
-        }
+        NowState = State.Loading;
+        var path = url.StartsWith("http") ? url : Path.Combine("file:///" + Application.streamingAssetsPath, url);
 
         // Load file
-        using (WWW www = new WWW(path))
+        using (var www = new WWW(path))
         {
             yield return www;
-
             if (string.IsNullOrEmpty(www.error) == false)
             {
                 Debug.LogError("File load error.\n" + www.error);
-                nowState = State.None;
+                NowState = State.None;
                 yield break;
             }
 
             Clear();
-            nowState = State.Loading;
+            NowState = State.Loading;
 
             // Get GIF textures
-            yield return StartCoroutine(UniGif.GetTextureListCoroutine(www.bytes, (gifTexList, loopCount, width, height) =>
-            {
-                if (gifTexList != null)
+            yield return StartCoroutine(UniGif.GetTextureListCoroutine(www.bytes,
+                (gifTexList, loopCount, width, height) =>
                 {
-                    m_gifTextureList = gifTexList;
-                    this.loopCount = loopCount;
-                    this.width = width;
-                    this.height = height;
-                    nowState = State.Ready;
-
-                    m_imgAspectCtrl.FixAspectRatio(width, height);
-
-                    if (m_rotateOnLoading)
+                    if (gifTexList != null)
                     {
-                        transform.localEulerAngles = Vector3.zero;
+                        m_gifTextureList = gifTexList;
+                        LoopCount = loopCount;
+                        Width = width;
+                        Height = height;
+                        NowState = State.Ready;
+                        imgAspectCtrl.FixAspectRatio(width, height);
+                        if (rotateOnLoading) transform.localEulerAngles = Vector3.zero;
+                        if (autoPlay) Play();
                     }
-
-                    if (autoPlay)
+                    else
                     {
-                        Play();
+                        Debug.LogError("Gif texture get error.");
+                        NowState = State.None;
                     }
-                }
-                else
-                {
-                    Debug.LogError("Gif texture get error.");
-                    nowState = State.None;
-                }
-            },
-            m_filterMode, m_wrapMode, m_outputDebugLog));
+                }, filterMode, wrapMode, outputDebugLog));
         }
     }
 
     /// <summary>
     /// Clear GIF texture
     /// </summary>
-    public void Clear()
+    private void Clear()
     {
-        if (m_rawImage != null)
-        {
-            m_rawImage.texture = null;
-        }
-
+        if (rawImage != null) rawImage.texture = null;
         if (m_gifTextureList != null)
         {
-            for (int i = 0; i < m_gifTextureList.Count; i++)
-            {
+            for (var i = 0; i < m_gifTextureList.Count; i++)
                 if (m_gifTextureList[i] != null)
                 {
                     if (m_gifTextureList[i].m_texture2d != null)
@@ -281,14 +219,15 @@ public class UniGifImage : MonoBehaviour
                         Destroy(m_gifTextureList[i].m_texture2d);
                         m_gifTextureList[i].m_texture2d = null;
                     }
+
                     m_gifTextureList[i] = null;
                 }
-            }
+
             m_gifTextureList.Clear();
             m_gifTextureList = null;
         }
 
-        nowState = State.None;
+        NowState = State.None;
     }
 
     /// <summary>
@@ -296,18 +235,20 @@ public class UniGifImage : MonoBehaviour
     /// </summary>
     public void Play()
     {
-        if (nowState != State.Ready)
+        if (NowState != State.Ready)
         {
             Debug.LogWarning("State is not READY.");
             return;
         }
-        if (m_rawImage == null || m_gifTextureList == null || m_gifTextureList.Count <= 0)
+
+        if (rawImage == null || m_gifTextureList == null || m_gifTextureList.Count <= 0)
         {
             Debug.LogError("Raw Image or GIF Texture is nothing.");
             return;
         }
-        nowState = State.Playing;
-        m_rawImage.texture = m_gifTextureList[0].m_texture2d;
+
+        NowState = State.Playing;
+        rawImage.texture = m_gifTextureList[0].m_texture2d;
         m_delayTime = Time.time + m_gifTextureList[0].m_delaySec;
         m_gifTextureIndex = 0;
         m_nowLoopCount = 0;
@@ -318,12 +259,13 @@ public class UniGifImage : MonoBehaviour
     /// </summary>
     public void Stop()
     {
-        if (nowState != State.Playing && nowState != State.Pause)
+        if (NowState != State.Playing && NowState != State.Pause)
         {
             Debug.LogWarning("State is not Playing and Pause.");
             return;
         }
-        nowState = State.Ready;
+
+        NowState = State.Ready;
     }
 
     /// <summary>
@@ -331,12 +273,13 @@ public class UniGifImage : MonoBehaviour
     /// </summary>
     public void Pause()
     {
-        if (nowState != State.Playing)
+        if (NowState != State.Playing)
         {
             Debug.LogWarning("State is not Playing.");
             return;
         }
-        nowState = State.Pause;
+
+        NowState = State.Pause;
     }
 
     /// <summary>
@@ -344,11 +287,12 @@ public class UniGifImage : MonoBehaviour
     /// </summary>
     public void Resume()
     {
-        if (nowState != State.Pause)
+        if (NowState != State.Pause)
         {
             Debug.LogWarning("State is not Pause.");
             return;
         }
-        nowState = State.Playing;
+
+        NowState = State.Playing;
     }
 }

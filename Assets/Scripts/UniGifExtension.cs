@@ -16,10 +16,8 @@ public static class UniGifExtension
     public static int GetNumeral(this BitArray array, int startIndex, int bitLength)
     {
         var newArray = new BitArray(bitLength);
-
-        for (int i = 0; i < bitLength; i++) 
+        for (var i = 0; i < bitLength; i++) 
             newArray[i] = array.Length > startIndex + i && array.Get(startIndex + i);
-
         return newArray.ToNumeral();
     }
 
@@ -27,14 +25,10 @@ public static class UniGifExtension
     /// Convert BitArray to int
     /// </summary>
     /// <returns>Converted int</returns>
-    public static int ToNumeral(this BitArray array)
+    private static int ToNumeral(this BitArray array)
     {
-        if (array == null)
-            throw new ArgumentNullException();
-
-        if (array.Length > 32)
-            throw new ArgumentOutOfRangeException(nameof(array));
-
+        if (array == null) throw new ArgumentNullException();
+        if (array.Length > 32) throw new ArgumentOutOfRangeException(nameof(array));
         var result = new int[1];
         array.CopyTo(result, 0);
         return result[0];
